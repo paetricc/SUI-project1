@@ -24,8 +24,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         std::vector<SearchAction> actions = working_state.actions();
 
         for (SearchAction action : actions) {
+            // TODO: Fix invalid action move.
             SearchState action_state(action.execute(working_state));
-            // TODO pridavat nekde akce do solution
 
             // If the current state is a goal.
             if (action_state.isFinal()) {
@@ -34,8 +34,12 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
             // If the state is not in set.
             if (set_closed.find(action_state) == set_closed.end()) {
+                // Add the node to the queue and to the set.
                 set_closed.insert(action_state);
                 queue_open.push(action_state);
+
+                // Add the node to the solution.
+                solution.push_back(action);
             }
         }
     }
