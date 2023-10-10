@@ -8,10 +8,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         return {};
     }
 
-    // TODO jestli misto queue nema byt seznam, abych mohl prochazet
-    // zda neni ten stav uz ve fronte
     std::queue<SearchState> queue_open;
-    std::set<SearchState> set_closed = {};
+    std::set<SearchState> set_closed = {init_state};
     std::vector<SearchAction> solution = {};
 
     // Push the first state into the queue_open.
@@ -22,22 +20,21 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         SearchState working_state(queue_open.front());
         queue_open.pop();
 
-        set_closed.insert(working_state);
-
         // Expand the node.
         std::vector<SearchAction> actions = working_state.actions();
 
         for (SearchAction action : actions) {
             SearchState action_state(action.execute(working_state));
+            // TODO pridavat nekde akce do solution
+
+            // If the current state is a goal.
+            if (action_state.isFinal()) {
+                return solution;
+            }
 
             // If the state is not in set.
-            // TODO jestli testovat taky s open (frontier)
-            // TODO pridavat nekde akce do solution
             if (set_closed.find(action_state) == set_closed.end()) {
-                if (action_state.isFinal()) {
-                    return solution;
-                }
-
+                set_closed.insert(action_state);
                 queue_open.push(action_state);
             }
         }
