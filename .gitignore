@@ -2,3 +2,5 @@
 *.d
 fc-sui
 test-bin
+
+.idea
