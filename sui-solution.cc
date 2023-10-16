@@ -28,6 +28,8 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
     std::map<SearchState, int> map_costs_g = {std::make_pair(init_state, 0)}; // Used as a "closed" lookup table.
     std::map<SearchState, std::pair<SearchState, SearchAction>> predecessors;
 
+    // TODO asi jeste pouzit seznam closed: https://iopscience.iop.org/article/10.1088/1742-6596/1898/1/012047/pdf
+
     double cost_f;
 
     // TODO jestli osetrovat pointery
