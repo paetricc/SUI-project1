@@ -65,7 +65,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         }
     }
 
-    return solution;
+    // Return an empty list if the solution was not found.
+    return {};
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
