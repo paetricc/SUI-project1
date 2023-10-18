@@ -13,7 +13,7 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
     std::queue<SearchState> queue_open;
     std::vector<SearchAction> solution = {};
-    std::set<SearchState> set_closed = {init_state};
+    std::set<SearchState> set_closed = {init_state}; // TODO jestli mozna nespojit set_closed a predecessors std::set<std::tuple<SearchState, SearchAction, SearchState>> - porovnat performance
     std::map<SearchState, std::pair<SearchState, SearchAction>> predecessors;
 
     // Push the first state into the queue_open.
