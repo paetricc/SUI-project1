@@ -124,13 +124,13 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
 }
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
-    std::set<std::pair<SearchState, double>> queue_open;
+    std::set<std::pair<std::shared_ptr<SearchState>, double>> queue_open;
     std::vector<SearchAction> solution = {};
     std::map<SearchState, double> map_costs_g = {std::make_pair(init_state, 0.0)}; // Used as a "closed" lookup table.
     // TODO mozna muze byt unordered map, ale je potreba vytvorit hash
-    std::map<SearchState, std::pair<SearchState, SearchAction>> predecessors;
+    std::map<SearchState, std::pair<std::shared_ptr<SearchState>, SearchAction>> predecessors;
 
-    queue_open.insert(std::make_pair(init_state, 0.0));
+    queue_open.insert(std::make_pair(std::make_shared<SearchState>(init_state), 0.0));
 
     while(!queue_open.empty()) {
         // Memory check.
@@ -139,11 +139,11 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
         }
 
         // Take the first node from the priority queue with the lowest value.
-        std::pair<SearchState, double> queue_top = *std::min_element(queue_open.begin(), queue_open.end(), [](const auto& lhs, const auto& rhs) {
+        std::pair<std::shared_ptr<SearchState>, double> queue_top = *std::min_element(queue_open.begin(), queue_open.end(), [](const auto& lhs, const auto& rhs) {
             return lhs.second < rhs.second;
         });
 
-        SearchState working_state = queue_top.first;
+        SearchState working_state = *(queue_top.first);
 
         if (working_state.isFinal()) {
             auto parent = predecessors.find(working_state);
@@ -152,7 +152,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                 // Add the previous action which ends in the current known state from the path.
                 solution.push_back(parent->second.second);
                 // Find the previous state from which the action begins.
-                parent = predecessors.find(parent->second.first);
+                parent = predecessors.find(*(parent->second.first));
             }
 
             // Reverse the pointers of the vector to get the solution in the right order.
@@ -192,8 +192,9 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
-                queue_open.insert(std::make_pair(action_state, cost_f));
-                predecessors.insert(std::make_pair(action_state,std::make_pair(working_state, action)));
+                queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
+                predecessors.insert(std::make_pair(action_state,
+                                                   std::make_pair(std::make_shared<SearchState>(working_state), action)));
             } else if (tentative_cost_g < state_cost_g->second) {
                 // Child se nachazi v mape a nova hodnota je mensi nez stavajici.
                 state_cost_g->second = tentative_cost_g;
@@ -201,17 +202,17 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
                 auto state = std::find_if(queue_open.begin(), queue_open.end(),
-                                          [&action_state](const std::pair<SearchState, double> & element){ return !(element.first < action_state) && !(action_state < element.first);} );
+                                          [&action_state](const std::pair<std::shared_ptr<SearchState>, double> & element){ return !(*(element.first) < action_state) && !(action_state < *(element.first));} );
 
                 if (state != queue_open.end()) {
                     queue_open.erase(std::make_pair(state->first, state->second));
-                    queue_open.insert(std::make_pair(action_state, cost_f));
+                    queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
                 }
 
                 auto it = predecessors.find(action_state);
 
                 if (it != predecessors.end()) {
-                    it->second = std::make_pair(working_state, action);
+                    it->second = std::make_pair(std::make_shared<SearchState>(working_state), action);
                 }
             }
         }
