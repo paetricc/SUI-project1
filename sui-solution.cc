@@ -6,8 +6,15 @@
 #include "memusage.h"
 #include "search-strategies.h"
 
+// Memory reserve.
 constexpr u_int MEM_RESERVE = 50000000;
 
+/*
+ * The implementation of an n-ary tree.
+ *
+ * The tree is implemented for saving trees of actions that are later used for a traceback
+ * of the resulting path of actions.
+ */
 template<typename T>
 class TreeNode
 {
@@ -32,11 +39,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
     std::vector<SearchAction> solution = {};
     std::set<SearchState> set_closed = {init_state};
 
-    std::shared_ptr<TreeNode<SearchAction>> root_node =
-            std::make_shared<TreeNode<SearchAction>>(nullptr, nullptr);
-
     // Push the first state into the queue_open.
-    queue_open.emplace(init_state, root_node);
+    queue_open.emplace(init_state, nullptr);
 
     while (!queue_open.empty()) {
         // Memory check.
@@ -60,7 +64,10 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
                 solution.push_back(action);
                 std::shared_ptr<TreeNode<SearchAction>> action_in_tree = working_action;
 
-                while (action_in_tree->Parent != nullptr) {
+                // Traceback the path of action using a tree of actions (the root node is
+                // the first action from the rood SearchState that is a predecessor of
+                // the current action).
+                while (action_in_tree != nullptr) {
                     solution.push_back(*(action_in_tree->Value));
                     action_in_tree = action_in_tree->Parent;
                 }
@@ -76,10 +83,14 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
                 // Add the node to the queue and to the set.
                 set_closed.insert(action_state);
 
+                // Create a tree node which stores the action that was used to get to the
+                // action state.
                 std::shared_ptr<SearchAction> tree_action = std::make_shared<SearchAction>(action);
                 std::shared_ptr<TreeNode<SearchAction>> tree_node =
                         std::make_shared<TreeNode<SearchAction>>(tree_action, working_action);
 
+                // Put the search state with the action which leads to this state into
+                // the open queue.
                 queue_open.emplace(action_state, tree_node);
             }
         }
