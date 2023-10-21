@@ -38,7 +38,7 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
 */
 
     // 2. totozne ale namisto poctu karet se berou jejich hodnoty
-    int cards_out_of_home = 364; // 91 * 4, 91 = 13 + 12 + ... + 1
+    /* int cards_out_of_home = 364; // 91 * 4, 91 = 13 + 12 + ... + 1
     for (const auto &home : state.homes) {
         auto home_top = home.topCard(); // Karta na vrchu home.
 
@@ -58,6 +58,21 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
             while (value >= 1) {
                 cards_out_of_home -= value; // Odečtení počtu karet, co jsou v konkrétním home od celkového počtu karet.
                 value = value - 1;
+            }
+        }
+    }*/
+    // 3. Verze
+    int cards_out_of_home = 364; // 91 * 4, 91 = 13 + 12 + ... + 1
+
+    for (const auto &stack: state.stacks) {
+        for (const auto &home: state.homes) {
+            if (stack.topCard().has_value()) {
+                if (home.canAccept(stack.topCard().value())) {
+                    cards_out_of_home -= stack.topCard()->value;
+                }
+            }
+            if (home.topCard().has_value()) {
+                cards_out_of_home -= home.topCard()->value;
             }
         }
     }
