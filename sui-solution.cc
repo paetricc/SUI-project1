@@ -10,8 +10,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
-    const u_char DEPTH = 0;
-    const u_int MEM_RESERVE = 50000000;
+    constexpr u_char DEPTH = 0;
+    constexpr u_int MEM_RESERVE = 50000000;
 
     std::vector<SearchAction> vector_result;
     std::vector<SearchAction> vector_actions;
@@ -56,7 +56,7 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
         // New possible result action to vector_result
         vector_result.emplace_back(vector_actions.back());
     }
-	return {};
+    return {};
 }
 
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
