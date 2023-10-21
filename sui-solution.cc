@@ -3,7 +3,10 @@
 #include <set>
 #include <utility>
 
+#include "memusage.h"
 #include "search-strategies.h"
+
+constexpr u_int MEM_RESERVE = 50000000;
 
 // https://stackoverflow.com/questions/3686588/implementing-a-tree-in-c
 template<typename T>
@@ -48,6 +51,11 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
     queue_open.emplace(init_state, root_node);
 
     while (!queue_open.empty()) {
+        // Memory check.
+        if (getCurrentRSS() + MEM_RESERVE > this->mem_limit_) {
+            return {};
+        }
+
         // Take the first node from the queue.
         SearchState working_state = queue_open.front().first;
         TreeNode<SearchAction>* working_action = queue_open.front().second;
@@ -61,6 +69,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
             // If the current state is a goal.
             if (action_state.isFinal()) {
+                std::cout << "RSS: " << getCurrentRSS() << "\n";
+
                 solution.push_back(action);
                 TreeNode<SearchAction>* action_in_tree = working_action;
 
