@@ -123,6 +123,9 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
     return cards_out_of_home;
 }
 
+/*
+ * Struct for comparison of the f(n) values for the A-star method.
+ */
 struct compare {
     constexpr bool operator()(
             std::pair<double, std::shared_ptr<SearchState>> const& a,
@@ -153,74 +156,70 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
         SearchState working_state = *(queue_open.top().second);
         queue_open.pop();
 
-        if (set_closed.find(working_state) != set_closed.end()) {
-            continue;
-        }
+        if (set_closed.find(working_state) == set_closed.end()) {
+            // The state is not in the closed set.
+            set_closed.insert(working_state);
 
-        set_closed.insert(working_state);
+            // Expand the node.
+            std::vector<SearchAction> actions = working_state.actions();
 
-        // Expand the node.
-        std::vector<SearchAction> actions = working_state.actions();
+            for (SearchAction action : actions) {
+                SearchState action_state = action.execute(working_state);
 
-        for (SearchAction action : actions) {
-            SearchState action_state = action.execute(working_state);
+                if (action_state.isFinal()) {
+                    solution.push_back(action);
+                    auto parent = predecessors.find(working_state);
 
-            if (action_state.isFinal()) {
-                solution.push_back(action);
-                auto parent = predecessors.find(working_state);
+                    while (parent != predecessors.end()) {
+                        // Add the previous action which ends in the current known state from the path.
+                        solution.push_back(parent->second.second);
+                        // Find the previous state from which the action begins.
+                        parent = predecessors.find(*(parent->second.first));
+                    }
 
-                while (parent != predecessors.end()) {
-                    // Add the previous action which ends in the current known state from the path.
-                    solution.push_back(parent->second.second);
-                    // Find the previous state from which the action begins.
-                    parent = predecessors.find(*(parent->second.first));
+                    // Reverse the pointers of the vector to get the solution in the right order.
+                    std::reverse(solution.begin(), solution.end());
+
+                    return solution;
                 }
 
-                // Reverse the pointers of the vector to get the solution in the right order.
-                std::reverse(solution.begin(), solution.end());
+                // Get the parent g(n) value and calculate a new value for children (g(n) + 1).
+                auto state_cost_g = map_costs_g.find(working_state);
 
-                std::cout << "Returning solution\n";
+                double tentative_cost_g = 0.0;
 
-                return solution;
-            }
+                if (state_cost_g != map_costs_g.end()) {
+                    tentative_cost_g = state_cost_g->second + 1.0;
+                }
 
-            // Get the parent g(n) value and calculate a new value for children (g(n) + 1).
-            auto state_cost_g = map_costs_g.find(working_state);
+                // Get the child g(n) value.
+                state_cost_g = map_costs_g.find(action_state);
 
-            double tentative_cost_g = 0.0;
+                if (state_cost_g == map_costs_g.end()) {
+                    // The child is not in the map.
+                    map_costs_g.emplace(action_state, tentative_cost_g);
 
-            if (state_cost_g != map_costs_g.end()) {
-                tentative_cost_g = state_cost_g->second + 1.0;
-            }
+                    // Calculate the new f(n) value.
+                    double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
-            // Get the child g(n) value.
-            state_cost_g = map_costs_g.find(action_state);
+                    queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
 
-            if (state_cost_g == map_costs_g.end()) {
-                // The child is not in the map.
-                map_costs_g.emplace(action_state, tentative_cost_g);
+                    predecessors.insert(std::make_pair(action_state,
+                                                       std::make_pair(std::make_shared<SearchState>(working_state), action)));
 
-                // Calculate the new f(n) value.
-                double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
+                } else if (tentative_cost_g < state_cost_g->second) {
+                    // The child is in the map and a new value is smaller than the actual.
+                    state_cost_g->second = tentative_cost_g;
 
-                queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
+                    // Calculate the new f(n) value.
+                    double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
+                    queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
 
-                predecessors.insert(std::make_pair(action_state,
-                                                   std::make_pair(std::make_shared<SearchState>(working_state), action)));
+                    auto it = predecessors.find(action_state);
 
-            } else if (tentative_cost_g < state_cost_g->second) {
-                // The child is in the map and a new value is smaller than the actual.
-                state_cost_g->second = tentative_cost_g;
-
-                // Calculate the new f(n) value.
-
-                double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
-                queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
-
-                auto it = predecessors.find(action_state);
-
-                if (it != predecessors.end()) {
-                    it->second = std::make_pair(std::make_shared<SearchState>(working_state), action);
+                    if (it != predecessors.end()) {
+                        it->second = std::make_pair(std::make_shared<SearchState>(working_state), action);
+                    }
                 }
             }
         }
