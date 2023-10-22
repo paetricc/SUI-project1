@@ -36,34 +36,6 @@ public:
     std::shared_ptr<TreeNode<T>> Parent;
 };
 
-// Memory reserve.
-constexpr u_int MEM_RESERVE = 50000000;
-
-/*
- * The implementation of an n-ary tree.
- *
- * The tree is implemented for saving trees of actions that are later used for a traceback
- * of the resulting path of actions.
- */
-template<typename T>
-class TreeNode
-{
-public:
-    TreeNode()
-    = default;
-
-    TreeNode(std::shared_ptr<T>  _value, std::shared_ptr<TreeNode<T>> _parent)
-        : Value(std::move(_value)), Parent(std::move(_parent))
-    {
-    }
-
-    ~TreeNode()
-    = default;
-
-    std::shared_ptr<T> Value;
-    std::shared_ptr<TreeNode<T>> Parent;
-};
-
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
     std::queue<std::pair<SearchState, std::shared_ptr<TreeNode<SearchAction>>>> queue_open;
     std::vector<SearchAction> solution = {};
