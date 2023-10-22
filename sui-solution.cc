@@ -1,10 +1,40 @@
 #include <algorithm>
 #include <queue>
 #include <set>
+#include <stack>
 #include <utility>
+#include <vector>
 
-#include "memusage.h"
 #include "search-strategies.h"
+#include "memusage.h"
+
+// Memory reserve.
+constexpr u_int MEM_RESERVE = 50000000;
+
+/*
+ * The implementation of an n-ary tree.
+ *
+ * The tree is implemented for saving trees of actions that are later used for a traceback
+ * of the resulting path of actions.
+ */
+template<typename T>
+class TreeNode
+{
+public:
+    TreeNode()
+    = default;
+
+    TreeNode(std::shared_ptr<T>  _value, std::shared_ptr<TreeNode<T>> _parent)
+        : Value(std::move(_value)), Parent(std::move(_parent))
+    {
+    }
+
+    ~TreeNode()
+    = default;
+
+    std::shared_ptr<T> Value;
+    std::shared_ptr<TreeNode<T>> Parent;
+};
 
 // Memory reserve.
 constexpr u_int MEM_RESERVE = 50000000;
@@ -101,7 +131,51 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
-	return {};
+    constexpr u_char DEPTH = 0;
+
+    std::vector<SearchAction> vector_result;
+    std::vector<SearchAction> vector_actions;
+    std::stack<std::pair<SearchState, int>> state_stack;
+    state_stack.emplace(init_state, DEPTH);
+    bool swap = false;
+    while (!state_stack.empty()) {
+        // Memory check
+        if (swap) {
+            if (getCurrentRSS() + MEM_RESERVE > this->mem_limit_)
+                return {};
+        }
+        swap = !swap;
+        // Get new state to processing
+        auto node = state_stack.top();
+        state_stack.pop();
+        // Check if actual node result of game
+        if (node.first.isFinal())
+            return vector_result;
+        // Depth-limit occurred
+        if (node.second == this->depth_limit_) {
+            if (state_stack.empty())
+                continue;
+            // Depth changes so pop from vector_result and vector_action until
+            // vector_result size not equal to new state depth from top of state_stack
+            for (int i = 0; i <= node.second - state_stack.top().second; i++) {
+                vector_result.pop_back();
+                vector_actions.pop_back();
+            }
+            // New possible result action to vector_result
+            if (!vector_actions.empty())
+                vector_result.emplace_back(vector_actions.back());
+
+            continue;
+        }
+        // Expand node and save actions and states to vector_actions and state_stack
+        for (auto action: node.first.actions()) {
+            state_stack.emplace(action.execute(node.first), node.second + 1);
+            vector_actions.emplace_back(action);
+        }
+        // New possible result action to vector_result
+        vector_result.emplace_back(vector_actions.back());
+    }
+    return {};
 }
 
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
@@ -139,10 +213,11 @@ struct compare {
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
     std::priority_queue<std::pair<double, std::shared_ptr<SearchState>>,
             std::vector<std::pair<double, std::shared_ptr<SearchState>>>, compare> queue_open;
-    std::vector<SearchAction> solution = {};
+
     std::map<SearchState, double> map_costs_g = {std::make_pair(init_state, 0.0)};
     std::map<SearchState, std::pair<std::shared_ptr<SearchState>, SearchAction>> predecessors;
     std::set<SearchState> set_closed;
+    std::vector<SearchAction> solution = {};
 
     queue_open.emplace(0.0, std::make_shared<SearchState>(init_state));
 
@@ -225,5 +300,5 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
         }
     }
 
-	return {};
+    return {};
 }
