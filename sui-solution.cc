@@ -146,22 +146,6 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 
         SearchState working_state = *(queue_top.first);
 
-        if (working_state.isFinal()) {
-            auto parent = predecessors.find(working_state);
-
-            while (parent != predecessors.end()) {
-                // Add the previous action which ends in the current known state from the path.
-                solution.push_back(parent->second.second);
-                // Find the previous state from which the action begins.
-                parent = predecessors.find(*(parent->second.first));
-            }
-
-            // Reverse the pointers of the vector to get the solution in the right order.
-            std::reverse(solution.begin(), solution.end());
-
-            return solution;
-        }
-
         queue_open.erase(queue_top);
 
         // Expand the node.
@@ -169,6 +153,23 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 
         for (SearchAction action : actions) {
             SearchState action_state = action.execute(working_state);
+
+            if (action_state.isFinal()) {
+                solution.push_back(action);
+                auto parent = predecessors.find(working_state);
+
+                while (parent != predecessors.end()) {
+                    // Add the previous action which ends in the current known state from the path.
+                    solution.push_back(parent->second.second);
+                    // Find the previous state from which the action begins.
+                    parent = predecessors.find(*(parent->second.first));
+                }
+
+                // Reverse the pointers of the vector to get the solution in the right order.
+                std::reverse(solution.begin(), solution.end());
+
+                return solution;
+            }
 
             // Get the parent g(n) value and calculate a new value for children (g(n) + 1).
             auto state_cost_g = map_costs_g.find(working_state);
@@ -190,22 +191,25 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
                 queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
+
                 predecessors.insert(std::make_pair(action_state,
-                    std::make_pair(std::make_shared<SearchState>(working_state), action)));
+                                                   std::make_pair(std::make_shared<SearchState>(working_state), action)));
+
             } else if (tentative_cost_g < state_cost_g->second) {
                 // The child is in the map and a new value is smaller than the actual.
                 state_cost_g->second = tentative_cost_g;
 
                 // Calculate the new f(n) value.
+
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
                 auto state = std::find_if(queue_open.begin(), queue_open.end(),
-                    [&action_state](const std::pair<std::shared_ptr<SearchState>, double> & element){
-                    return !(*(element.first) < action_state) && !(action_state < *(element.first));
-                } );
+                                          [&action_state](const std::pair<std::shared_ptr<SearchState>, double> & element){
+                                              return !(*(element.first) < action_state) && !(action_state < *(element.first));
+                                          } );
 
                 if (state != queue_open.end()) {
-                    queue_open.erase(std::make_pair(state->first, state->second));
+                    queue_open.erase(state);
                     queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
                 }
 
