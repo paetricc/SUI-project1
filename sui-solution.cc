@@ -123,13 +123,25 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
     return cards_out_of_home;
 }
 
+struct compare {
+    constexpr bool operator()(
+            std::pair<double, std::shared_ptr<SearchState>> const& a,
+            std::pair<double, std::shared_ptr<SearchState>> const& b)
+    const noexcept
+    {
+        return a.first > b.first;
+    }
+};
+
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
-    std::set<std::pair<std::shared_ptr<SearchState>, double>> queue_open;
+    std::priority_queue<std::pair<double, std::shared_ptr<SearchState>>,
+            std::vector<std::pair<double, std::shared_ptr<SearchState>>>, compare> queue_open;
     std::vector<SearchAction> solution = {};
     std::map<SearchState, double> map_costs_g = {std::make_pair(init_state, 0.0)};
     std::map<SearchState, std::pair<std::shared_ptr<SearchState>, SearchAction>> predecessors;
+    std::set<SearchState> set_closed;
 
-    queue_open.insert(std::make_pair(std::make_shared<SearchState>(init_state), 0.0));
+    queue_open.emplace(0.0, std::make_shared<SearchState>(init_state));
 
     while(!queue_open.empty()) {
         // Memory check.
@@ -138,15 +150,14 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
         }
 
         // Take the first node from the priority queue with the lowest value.
-        std::pair<std::shared_ptr<SearchState>, double> queue_top =
-                *std::min_element(queue_open.begin(), queue_open.end(),
-                                  [](const auto& lhs, const auto& rhs) {
-            return lhs.second < rhs.second;
-        });
+        SearchState working_state = *(queue_open.top().second);
+        queue_open.pop();
 
-        SearchState working_state = *(queue_top.first);
+        if (set_closed.find(working_state) != set_closed.end()) {
+            continue;
+        }
 
-        queue_open.erase(queue_top);
+        set_closed.insert(working_state);
 
         // Expand the node.
         std::vector<SearchAction> actions = working_state.actions();
@@ -167,6 +178,8 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 
                 // Reverse the pointers of the vector to get the solution in the right order.
                 std::reverse(solution.begin(), solution.end());
+
+                std::cout << "Returning solution\n";
 
                 return solution;
             }
@@ -190,7 +203,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                 // Calculate the new f(n) value.
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
 
-                queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
+                queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
 
                 predecessors.insert(std::make_pair(action_state,
                                                    std::make_pair(std::make_shared<SearchState>(working_state), action)));
@@ -202,16 +215,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                 // Calculate the new f(n) value.
 
                 double cost_f = tentative_cost_g + compute_heuristic(action_state, *(this->heuristic_));
-
-                auto state = std::find_if(queue_open.begin(), queue_open.end(),
-                                          [&action_state](const std::pair<std::shared_ptr<SearchState>, double> & element){
-                                              return !(*(element.first) < action_state) && !(action_state < *(element.first));
-                                          } );
-
-                if (state != queue_open.end()) {
-                    queue_open.erase(state);
-                    queue_open.insert(std::make_pair(std::make_shared<SearchState>(action_state), cost_f));
-                }
+                queue_open.emplace(cost_f, std::make_shared<SearchState>(action_state));
 
                 auto it = predecessors.find(action_state);
 
