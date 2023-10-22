@@ -1,3 +1,10 @@
+/**********************************************************/
+/* File: sui-solution.cc                                  */
+/* Authors: Tomáš Bártů <xbartu11@stud.fit.vutbr.cz>      */
+/*          David Chocholaty <xchoch09@stud.fit.vutbr.cz> */
+/* Project: Project for the course SUI                    */
+/*          - Project 1 - Searching                       */
+/**********************************************************/
 #include <algorithm>
 #include <queue>
 #include <set>
